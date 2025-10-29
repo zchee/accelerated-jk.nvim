@@ -1,3 +1,12 @@
+-- LuaJIT Optimization: Enable aggressive JIT compilation with high limits
+local jit_available, jit = pcall(require, 'jit')
+if jit_available and jit.opt then
+  jit.opt.start('maxtrace=10000', 'maxrecord=40000', 'maxirconst=10000', 'loopunroll=100')
+end
+
+-- LuaJIT Optimization: Cache vim.* functions as locals to reduce table lookups
+local tbl_deep_extend = vim.tbl_deep_extend
+
 local M = {}
 
 M.items = {
@@ -21,7 +30,13 @@ M.merge_config = function(opts)
   if opts.mode ~= 'time_driven' then
     opts.acceleration_motions = M.items.acceleration_motions
   end
-  M.items = vim.tbl_deep_extend('force', M.items, opts)
+  -- LuaJIT Optimization: Use cached local function instead of vim.tbl_deep_extend
+  M.items = tbl_deep_extend('force', M.items, opts)
+end
+
+-- LuaJIT Optimization: Ensure JIT compilation is enabled for this module
+if jit_available and jit.on then
+  jit.on(true, true)
 end
 
 return M
